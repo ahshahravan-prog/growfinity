@@ -6,10 +6,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  if (!process.env.GROQ_API_KEY) {
+    return res.status(200).json({
+      content: [{ type: 'text', text: '⚠️ کلید GROQ_API_KEY در Vercel تنظیم نشده. لطفاً به Settings → Environment Variables بروید و آن را اضافه کنید.' }]
+    });
+  }
+
   try {
     const { messages, system } = req.body;
 
-    // Convert messages for Groq (same format as OpenAI)
     const groqMessages = [];
     if (system) groqMessages.push({ role: 'system', content: system });
     groqMessages.push(...messages);
@@ -29,13 +34,20 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Convert Groq response to Anthropic format so HTML files don't need to change
+    if (data.error) {
+      return res.status(200).json({
+        content: [{ type: 'text', text: '⚠️ خطای Groq: ' + (data.error.message || JSON.stringify(data.error)) }]
+      });
+    }
+
     const text = data.choices?.[0]?.message?.content || '';
     res.status(200).json({
       content: [{ type: 'text', text }]
     });
 
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(200).json({
+      content: [{ type: 'text', text: '⚠️ خطا: ' + error.message }]
+    });
   }
 }
