@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: max_tokens || 1200,
+        max_tokens: max_tokens || 1500,
         system: system,
         messages: messages
       })
@@ -35,6 +35,12 @@ export default async function handler(req, res) {
     if (data.error) {
       return res.status(200).json({
         content: [{ type: 'text', text: '⚠️ خطای Claude: ' + (data.error.message || JSON.stringify(data.error)) }]
+      });
+    }
+
+    if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
+      return res.status(200).json({
+        content: [{ type: 'text', text: '⚠️ پاسخ خالی از Claude. ساختار: ' + JSON.stringify(data).slice(0, 200) }]
       });
     }
 
